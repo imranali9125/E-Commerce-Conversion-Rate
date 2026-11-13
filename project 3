@@ -1,0 +1,483 @@
+
+# ============================================================
+# PROJECT: E-COMMERCE CONVERSION RATE ANALYSIS
+# Technologies: Python, Pandas, NumPy, Matplotlib, Seaborn
+# ============================================================
+
+# 1. IMPORT LIBRARIES
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 2. CREATE SAMPLE DATASET
+
+np.random.seed(42)
+
+n = 1000
+
+traffic_sources = ["Google", "Facebook", "Instagram", "Direct", "Email"]
+devices = ["Mobile", "Desktop", "Tablet"]
+categories = ["Electronics", "Clothing", "Beauty", "Furniture", "Sports"]
+
+df = pd.DataFrame({
+    "Session_ID": range(1, n + 1),
+    "Date": pd.date_range("2026-01-01", periods=n, freq="8h"),
+    "Traffic_Source": np.random.choice(
+        traffic_sources, n,
+        p=[0.30, 0.20, 0.20, 0.15, 0.15]
+    ),
+    "Device": np.random.choice(
+        devices, n,
+        p=[0.60, 0.30, 0.10]
+    ),
+    "Product_Category": np.random.choice(categories, n),
+    "Pages_Viewed": np.random.randint(1, 15, n),
+    "Time_Spent_Minutes": np.random.randint(1, 60, n),
+    "Product_Views": np.random.randint(1, 10, n),
+    "Add_To_Cart": np.random.choice(
+        [0, 1], n, p=[0.65, 0.35]
+    )
+})
+
+# Generate purchase probability based on cart activity
+purchase_probability = np.where(
+    df["Add_To_Cart"] == 1, 0.65, 0.02
+)
+
+df["Purchase"] = np.random.binomial(
+    1, purchase_probability
+)
+
+# Generate order amount
+df["Order_Amount"] = np.where(
+    df["Purchase"] == 1,
+    np.random.randint(500, 15000, n),
+    0
+)
+
+# 3. DATA CLEANING
+
+print("\n========== DATASET INFORMATION ==========")
+
+print(df.head())
+
+print("\nDataset Shape:", df.shape)
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+print("\nDuplicate Records:", df.duplicated().sum())
+
+df.drop_duplicates(inplace=True)
+df.dropna(inplace=True)
+
+# 4. FEATURE ENGINEERING
+
+df["Month"] = df["Date"].dt.strftime("%B")
+
+df["Conversion"] = df["Purchase"]
+
+df["Cart_Abandoned"] = np.where(
+    (df["Add_To_Cart"] == 1) &
+    (df["Purchase"] == 0),
+    1, 0
+)
+
+# 5. OVERALL BUSINESS PERFORMANCE
+
+total_visitors = len(df)
+
+total_purchases = df["Purchase"].sum()
+
+total_cart_additions = df["Add_To_Cart"].sum()
+
+total_revenue = df["Order_Amount"].sum()
+
+overall_conversion_rate = (
+    total_purchases / total_visitors
+) * 100
+
+cart_abandonment_rate = (
+    df["Cart_Abandoned"].sum() /
+    total_cart_additions * 100
+    if total_cart_additions > 0 else 0
+)
+
+average_order_value = (
+    total_revenue / total_purchases
+    if total_purchases > 0 else 0
+)
+
+print("\n========== OVERALL PERFORMANCE ==========")
+
+print("Total Website Visitors:", total_visitors)
+
+print("Total Purchases:", total_purchases)
+
+print("Total Add To Cart:", total_cart_additions)
+
+print("Total Revenue: Rs.", round(total_revenue, 2))
+
+print(
+    "Overall Conversion Rate:",
+    round(overall_conversion_rate, 2), "%"
+)
+
+print(
+    "Cart Abandonment Rate:",
+    round(cart_abandonment_rate, 2), "%"
+)
+
+print(
+    "Average Order Value: Rs.",
+    round(average_order_value, 2)
+)
+
+# 6. TRAFFIC SOURCE ANALYSIS
+
+traffic_analysis = df.groupby("Traffic_Source").agg(
+    Total_Visitors=("Session_ID", "count"),
+    Total_Purchases=("Purchase", "sum"),
+    Total_Revenue=("Order_Amount", "sum")
+)
+
+traffic_analysis["Conversion_Rate"] = (
+    traffic_analysis["Total_Purchases"] /
+    traffic_analysis["Total_Visitors"]
+) * 100
+
+traffic_analysis = traffic_analysis.round(2)
+
+print("\n========== TRAFFIC SOURCE ANALYSIS ==========")
+
+print(traffic_analysis)
+
+best_traffic_source = (
+    traffic_analysis["Conversion_Rate"].idxmax()
+)
+
+print(
+    "\nBest Traffic Source:",
+    best_traffic_source
+)
+
+# 7. DEVICE-WISE CONVERSION ANALYSIS
+
+device_analysis = df.groupby("Device").agg(
+    Total_Visitors=("Session_ID", "count"),
+    Total_Purchases=("Purchase", "sum"),
+    Total_Revenue=("Order_Amount", "sum")
+)
+
+device_analysis["Conversion_Rate"] = (
+    device_analysis["Total_Purchases"] /
+    device_analysis["Total_Visitors"]
+) * 100
+
+device_analysis = device_analysis.round(2)
+
+print("\n========== DEVICE ANALYSIS ==========")
+
+print(device_analysis)
+
+best_device = device_analysis["Conversion_Rate"].idxmax()
+
+print("\nBest Performing Device:", best_device)
+
+# 8. PRODUCT CATEGORY ANALYSIS
+
+category_analysis = df.groupby("Product_Category").agg(
+    Total_Visitors=("Session_ID", "count"),
+    Total_Purchases=("Purchase", "sum"),
+    Total_Revenue=("Order_Amount", "sum")
+)
+
+category_analysis["Conversion_Rate"] = (
+    category_analysis["Total_Purchases"] /
+    category_analysis["Total_Visitors"]
+) * 100
+
+category_analysis = category_analysis.round(2)
+
+print("\n========== PRODUCT CATEGORY ANALYSIS ==========")
+
+print(category_analysis)
+
+best_category = category_analysis["Conversion_Rate"].idxmax()
+
+print("\nBest Product Category:", best_category)
+
+# 9. MONTHLY SALES ANALYSIS
+
+monthly_analysis = df.groupby("Month").agg(
+    Visitors=("Session_ID", "count"),
+    Purchases=("Purchase", "sum"),
+    Revenue=("Order_Amount", "sum")
+)
+
+monthly_analysis["Conversion_Rate"] = (
+    monthly_analysis["Purchases"] /
+    monthly_analysis["Visitors"]
+) * 100
+
+monthly_analysis = monthly_analysis.round(2)
+
+print("\n========== MONTHLY ANALYSIS ==========")
+
+print(monthly_analysis)
+
+# 10. WEBSITE ENGAGEMENT ANALYSIS
+
+engagement_analysis = df.groupby("Purchase").agg(
+    Average_Pages_Viewed=("Pages_Viewed", "mean"),
+    Average_Time_Spent=("Time_Spent_Minutes", "mean"),
+    Average_Product_Views=("Product_Views", "mean")
+).round(2)
+
+engagement_analysis.index = [
+    "Not Purchased",
+    "Purchased"
+]
+
+print("\n========== ENGAGEMENT ANALYSIS ==========")
+
+print(engagement_analysis)
+
+# 11. CONVERSION FUNNEL ANALYSIS
+
+funnel_data = pd.Series({
+    "Website Visitors": len(df),
+    "Product View Sessions": (df["Product_Views"] > 0).sum(),
+    "Add To Cart": df["Add_To_Cart"].sum(),
+    "Completed Purchases": df["Purchase"].sum()
+})
+
+print("\n========== CONVERSION FUNNEL ==========")
+
+print(funnel_data)
+
+# 12. TOP 10 PURCHASES
+
+top_purchases = df[df["Purchase"] == 1].nlargest(
+    10, "Order_Amount"
+)[
+    ["Session_ID", "Traffic_Source", "Device",
+     "Product_Category", "Order_Amount"]
+]
+
+print("\n========== TOP 10 PURCHASES ==========")
+
+print(top_purchases.to_string(index=False))
+
+# 13. DATA VISUALIZATION
+
+sns.set_theme(style="whitegrid")
+
+fig, axes = plt.subplots(2, 3, figsize=(19, 12))
+
+fig.suptitle(
+    "E-COMMERCE CONVERSION RATE ANALYSIS DASHBOARD",
+    fontsize=19,
+    fontweight="bold"
+)
+
+# Chart 1: Traffic Source Conversion Rate
+
+traffic_analysis["Conversion_Rate"].plot(
+    kind="bar",
+    ax=axes[0, 0]
+)
+
+axes[0, 0].set_title("Conversion Rate by Traffic Source")
+axes[0, 0].set_ylabel("Conversion Rate (%)")
+axes[0, 0].tick_params(axis="x", rotation=30)
+
+# Chart 2: Device-wise Conversion Rate
+
+device_analysis["Conversion_Rate"].plot(
+    kind="bar",
+    ax=axes[0, 1]
+)
+
+axes[0, 1].set_title("Device-wise Conversion Rate")
+axes[0, 1].set_ylabel("Conversion Rate (%)")
+axes[0, 1].tick_params(axis="x", rotation=0)
+
+# Chart 3: Revenue by Product Category
+
+category_analysis["Total_Revenue"].plot(
+    kind="bar",
+    ax=axes[0, 2]
+)
+
+axes[0, 2].set_title("Revenue by Product Category")
+axes[0, 2].set_ylabel("Revenue (Rs.)")
+axes[0, 2].tick_params(axis="x", rotation=30)
+
+# Chart 4: Monthly Revenue Trend
+
+monthly_revenue = df.groupby(
+    df["Date"].dt.to_period("M")
+)["Order_Amount"].sum()
+
+axes[1, 0].plot(
+    monthly_revenue.index.astype(str),
+    monthly_revenue.values,
+    marker="o",
+    linewidth=2
+)
+
+axes[1, 0].set_title("Monthly Revenue Trend")
+axes[1, 0].set_xlabel("Month")
+axes[1, 0].set_ylabel("Revenue (Rs.)")
+axes[1, 0].tick_params(axis="x", rotation=45)
+
+# Chart 5: Conversion Funnel
+
+funnel_data.plot(
+    kind="bar",
+    ax=axes[1, 1]
+)
+
+axes[1, 1].set_title("E-Commerce Conversion Funnel")
+axes[1, 1].set_ylabel("Number of Sessions")
+axes[1, 1].tick_params(axis="x", rotation=25)
+
+# Chart 6: Time Spent vs Purchase
+
+sns.boxplot(
+    data=df,
+    x="Purchase",
+    y="Time_Spent_Minutes",
+    ax=axes[1, 2]
+)
+
+axes[1, 2].set_title("Time Spent vs Purchase")
+axes[1, 2].set_xticks([0, 1])
+axes[1, 2].set_xticklabels(["Not Purchased", "Purchased"])
+
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+plt.show()
+
+# 14. CONVERSION RATE HEATMAP
+
+heatmap_data = df.pivot_table(
+    values="Purchase",
+    index="Device",
+    columns="Traffic_Source",
+    aggfunc="mean"
+) * 100
+
+plt.figure(figsize=(10, 6))
+
+sns.heatmap(
+    heatmap_data,
+    annot=True,
+    cmap="YlGnBu",
+    fmt=".2f"
+)
+
+plt.title("Conversion Rate by Device and Traffic Source")
+plt.ylabel("Device")
+plt.xlabel("Traffic Source")
+
+plt.tight_layout()
+
+plt.show()
+
+# 15. CORRELATION ANALYSIS
+
+correlation = df[
+    ["Pages_Viewed", "Time_Spent_Minutes",
+     "Product_Views", "Add_To_Cart",
+     "Purchase", "Order_Amount"]
+].corr()
+
+print("\n========== CORRELATION MATRIX ==========")
+
+print(correlation.round(2))
+
+plt.figure(figsize=(9, 6))
+
+sns.heatmap(
+    correlation,
+    annot=True,
+    cmap="coolwarm",
+    fmt=".2f"
+)
+
+plt.title("E-Commerce Correlation Heatmap")
+
+plt.tight_layout()
+
+plt.show()
+
+# 16. BUSINESS RECOMMENDATIONS
+
+print("\n========== BUSINESS RECOMMENDATIONS ==========")
+
+print(
+    "1. Focus marketing on:",
+    best_traffic_source
+)
+
+print(
+    "2. Improve customer experience on:",
+    best_device
+)
+
+print(
+    "3. Promote the best performing category:",
+    best_category
+)
+
+print(
+    "4. Reduce cart abandonment through better checkout design."
+)
+
+print(
+    "5. Improve product descriptions and website navigation."
+)
+
+# 17. EXPORT RESULTS TO CSV FILES
+
+df.to_csv(
+    "ecommerce_conversion_data.csv",
+    index=False
+)
+
+traffic_analysis.to_csv(
+    "traffic_source_analysis.csv"
+)
+
+device_analysis.to_csv(
+    "device_analysis.csv"
+)
+
+category_analysis.to_csv(
+    "category_analysis.csv"
+)
+
+monthly_analysis.to_csv(
+    "monthly_sales_analysis.csv"
+)
+
+top_purchases.to_csv(
+    "top_10_purchases.csv",
+    index=False
+)
+
+print("\n========== PROJECT COMPLETED ==========")
+
+print("Dataset exported successfully!")
+
+print("All analysis reports exported successfully!")
+
+print("All visualizations generated successfully!")
+
+# ============================================================
+# END OF E-COMMERCE CONVERSION RATE ANALYSIS PROJECT
+# ============================================================
